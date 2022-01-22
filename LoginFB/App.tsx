@@ -1,115 +1,122 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * Generated with the TypeScript template
- * https://github.com/react-native-community/react-native-template-typescript
- *
- * @format
- */
+// Example of Facebook Sign In integration in React Native
+// https://aboutreact.com/react-native-facebook-login/
 
-import React from 'react';
+// Import React in our code
+import React, {useState} from 'react';
+
+// Import all the components we are going to use
+import {SafeAreaView, View, StyleSheet, Text, Image, Alert} from 'react-native';
+
+// Import FBSDK
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-const Section: React.FC<{
-  title: string;
-}> = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'light';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
+  LoginButton,
+  AccessToken,
+  GraphRequest,
+  GraphRequestManager,
+} from 'react-native-fbsdk';
 
 const App = () => {
-  const isDarkMode = useColorScheme() === 'light';
+  const [userName, setUserName] = useState<any>('');
+  const [token, setToken] = useState<any>('');
+  const [profilePic, setProfilePic] = useState<any>('');
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const getResponseInfo = (error: any, result: any) => {
+    if (error) {
+      //Alert for the Error
+      Alert.alert('Error fetching data: ' + error.toString());
+    } else {
+      //response alert
+      console.log(JSON.stringify(result));
+      setUserName('Welcome ' + result.name);
+      setToken('User Token: ' + result.id);
+      setProfilePic(result.picture.data.url);
+    }
+  };
+
+  const onLogout = () => {
+    //Clear the state after logout
+    setUserName(null);
+    setToken(null);
+    setProfilePic(null);
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+    <SafeAreaView style={{flex: 1}}>
+      <Text style={styles.titleText}>
+        Example of Facebook Sign In integration in React Native
+      </Text>
+      <View style={styles.container}>
+        {profilePic ? (
+          <Image source={{uri: profilePic}} style={styles.imageStyle} />
+        ) : null}
+        <Text style={styles.textStyle}> {userName} </Text>
+        <Text style={styles.textStyle}> {token} </Text>
+        <LoginButton
+          readPermissions={['public_profile']}
+          onLoginFinished={(error: any, result: any) => {
+            if (error) {
+              Alert.alert(error);
+              console.log('Login has error: ' + result.error);
+            } else if (result.isCancelled) {
+              Alert.alert('Login is cancelled.');
+            } else {
+              AccessToken.getCurrentAccessToken().then((data: any) => {
+                console.log(data.accessToken.toString());
+                const processRequest = new GraphRequest(
+                  '/me?fields=name,picture.type(large)',
+                  null,
+                  getResponseInfo,
+                );
+                // Start the graph request.
+                new GraphRequestManager().addRequest(processRequest).start();
+              });
+            }
+          }}
+          onLogoutFinished={onLogout}
+        />
+      </View>
+      <Text style={styles.footerHeading}>
+        Facebook Sign In integration in React Native
+      </Text>
+      <Text style={styles.footerText}>www.aboutreact.com</Text>
     </SafeAreaView>
   );
 };
 
+export default App;
+
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  textStyle: {
+    fontSize: 20,
+    color: '#000',
+    textAlign: 'center',
+    padding: 10,
   },
-  sectionDescription: {
-    marginTop: 8,
+  imageStyle: {
+    width: 200,
+    height: 300,
+    resizeMode: 'contain',
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    padding: 20,
+  },
+  footerHeading: {
     fontSize: 18,
-    fontWeight: '400',
+    textAlign: 'center',
+    color: 'grey',
   },
-  highlight: {
-    fontWeight: '700',
+  footerText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: 'grey',
   },
 });
-
-export default App;
